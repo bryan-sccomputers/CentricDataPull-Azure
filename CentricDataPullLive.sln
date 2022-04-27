@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32414.318
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CentricDataPullLive", "CentricDataPullLive.csproj", "{37BCC8BB-9C4A-46EA-84FE-BD22353FBC2E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{37BCC8BB-9C4A-46EA-84FE-BD22353FBC2E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37BCC8BB-9C4A-46EA-84FE-BD22353FBC2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37BCC8BB-9C4A-46EA-84FE-BD22353FBC2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37BCC8BB-9C4A-46EA-84FE-BD22353FBC2E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {527D51F3-0E06-4E18-B783-747D27B07CD6}
+	EndGlobalSection
+EndGlobal
