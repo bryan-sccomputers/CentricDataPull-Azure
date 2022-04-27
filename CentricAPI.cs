@@ -16,7 +16,7 @@ namespace CentricDataPull
     public static class CentricAPI
     {
         private static string dbConnection = "Server=tcp:centrica2datapull.database.windows.net,1433;" +
-                                             "Initial Catalog=CentricA2KdataPull;" +
+                                             "Initial Catalog=CentricA2KdataPullLive;" +
                                              "Persist Security Info=False;" +
                                              "User ID=SQLSACRED;" +
                                              "Password=RHci6Te2vdvMTH;" +
@@ -33,7 +33,7 @@ namespace CentricDataPull
             {
                 try
                 {
-                    var tokenClient = new RestClient("https://sj-test.centricsoftware.com/csi-requesthandler/api/v2/session");
+                    var tokenClient = new RestClient("https://sj-prod.centricsoftware.com/csi-requesthandler/api/v2/session");
                     tokenClient.Timeout = -1;
                     var tokenRequest = new RestRequest(Method.POST);
                     tokenRequest.AddHeader("Content-Type", "application/json");
@@ -69,7 +69,7 @@ namespace CentricDataPull
         public static string GetAllEndpointData(string securityToken, string endpointName, string parameters, int skip, HttpRequest req)
         {
             string skipString = (parameters != "") ? ("&skip=" + skip) : ("?skip=" + skip);
-            var client = new RestClient("https://sj-test.centricsoftware.com/csi-requesthandler/api/v2/" + endpointName + parameters + skipString);
+            var client = new RestClient("https://sj-prod.centricsoftware.com/csi-requesthandler/api/v2/" + endpointName + parameters + skipString);
             client.Timeout = -1;
             var request = new RestRequest(Method.GET);
             request.AddHeader("Cookie", securityToken);
@@ -80,7 +80,7 @@ namespace CentricDataPull
 
         public static string GetEndpointData(string securityToken, string endpointName, string element, HttpRequest req)
         {
-            var client = new RestClient("https://sj-test.centricsoftware.com/csi-requesthandler/api/v2/" + endpointName + "/" + element);
+            var client = new RestClient("https://sj-prod.centricsoftware.com/csi-requesthandler/api/v2/" + endpointName + "/" + element);
             client.Timeout = -1;
             var request = new RestRequest(Method.GET);
             request.AddHeader("Cookie", securityToken);
