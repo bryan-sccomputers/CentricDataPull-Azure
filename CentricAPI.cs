@@ -92,7 +92,7 @@ namespace CentricDataPull
         //Converts any bad Json types into strings so they can be imported into the database properly and inserts the values.
         public static void ConvertAndInsert(string tableName, string tableData)
         {
-            var data = tableData.Replace("\'", "\\'").Replace("[]", "\"\"").Replace("{}", "\"\"");
+            var data = tableData.Replace("\'", "\\'").Replace("[]", "\"\"").Replace("{}", "\"\"").Replace("centric%3A", "");
             data = Regex.Replace(data, ":\\s?(\\[|\\{)(.+?)(\\}|\\])", ": '$1$2$3'");
             int rowCount = 0;
             try
