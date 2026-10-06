@@ -15,31 +15,47 @@ namespace CentricDataPull
 {
     public static class CentricAPI
     {
-        private static string dbConnection = "Server=tcp:centrica2datapull.database.windows.net,1433;" +
-                                             "Initial Catalog=CentricA2KdataPullLive;" +
-                                             "Persist Security Info=False;" +
-                                             "User ID=SQLSACRED;" +
-                                             "Password=RHci6Te2vdvMTH;" +
-                                             "MultipleActiveResultSets=False;" +
-                                             "Encrypt=True;" +
-                                             "TrustServerCertificate=False;" +
-                                             "Connection Timeout=30;";
+        /*
+        private static readonly string dbConnection = "Server=tcp:centrica2datapull.database.windows.net,1433;" +
+                                                      "Initial Catalog=CentricA2KdataPullCloud;" +
+                                                      "Persist Security Info=False;" +
+                                                      "User ID=SQLSACRED;" +
+                                                      "Password=RHci6Te2vdvMTH;" +
+                                                      "MultipleActiveResultSets=False;" +
+                                                      "Encrypt=True;" +
+                                                      "TrustServerCertificate=False;" +
+                                                      "Connection Timeout=30;";
+        */
+        private static readonly string dbConnection =
+                                            $"Server=tcp:{Environment.GetEnvironmentVariable("DB_SERVER")},1433;" +
+                                            $"Initial Catalog={Environment.GetEnvironmentVariable("DB_NAME")};" +
+                                            "Persist Security Info=False;" +
+                                            $"User ID={Environment.GetEnvironmentVariable("DB_USER")};" +
+                                            $"Password={Environment.GetEnvironmentVariable("DB_PASSWORD")};" +
+                                            "MultipleActiveResultSets=False;" +
+                                            "Encrypt=True;" +
+                                            "TrustServerCertificate=False;" +
+                                            "Connection Timeout=30;";
 
+        private static readonly string centricBaseUrl = Environment.GetEnvironmentVariable("CENTRIC_BASE_URL");
+        //Get Centric Security Token
         //Get Centric Security Token
         public static string AssignSecurityToken(HttpRequest req)
         {
             int tries = 0;
+            var username = Environment.GetEnvironmentVariable("CENTRIC_USERNAME");
+            var password = Environment.GetEnvironmentVariable("CENTRIC_PASSWORD");
             while (true)
             {
                 try
                 {
-                    var tokenClient = new RestClient("https://sj-prod.centricsoftware.com/csi-requesthandler/api/v2/session");
+                    var tokenClient = new RestClient($"{centricBaseUrl}/session");
                     tokenClient.Timeout = -1;
                     var tokenRequest = new RestRequest(Method.POST);
                     tokenRequest.AddHeader("Content-Type", "application/json");
                     var body = @"{" + "\n" +
-                    @"    ""username"": ""REST_API""," + "\n" +
-                    @"    ""password"": ""dd##e55?%44!!""" + "\n" +
+                    $@"    ""username"": ""{username}""," + "\n" +
+                    $@"    ""password"": ""{password}""" + "\n" +
                     @"}";
                     tokenRequest.AddParameter("application/json", body, ParameterType.RequestBody);
                     IRestResponse tokenResponse = tokenClient.Execute(tokenRequest);
@@ -69,7 +85,7 @@ namespace CentricDataPull
         public static string GetAllEndpointData(string securityToken, string endpointName, string parameters, int skip, HttpRequest req)
         {
             string skipString = (parameters != "") ? ("&skip=" + skip) : ("?skip=" + skip);
-            var client = new RestClient("https://sj-prod.centricsoftware.com/csi-requesthandler/api/v2/" + endpointName + parameters + skipString);
+            var client = new RestClient($"{centricBaseUrl}/{endpointName}{parameters}{skipString}");
             client.Timeout = -1;
             var request = new RestRequest(Method.GET);
             request.AddHeader("Cookie", securityToken);
@@ -80,7 +96,7 @@ namespace CentricDataPull
 
         public static string GetEndpointData(string securityToken, string endpointName, string element, HttpRequest req)
         {
-            var client = new RestClient("https://sj-prod.centricsoftware.com/csi-requesthandler/api/v2/" + endpointName + "/" + element);
+            var client = new RestClient($"{centricBaseUrl}/{endpointName}/{element}");
             client.Timeout = -1;
             var request = new RestRequest(Method.GET);
             request.AddHeader("Cookie", securityToken);
@@ -113,7 +129,7 @@ namespace CentricDataPull
                 {
                     InsertToTable(tableName, JsonConvert.DeserializeObject<DataTable>(data));
                 }
-                else if(rowCount == 1)
+                else if (rowCount == 1)
                 {
                     InsertToTable(tableName, JsonConvert.DeserializeObject<DataTable>("[" + data + "]"));
                 }
@@ -181,7 +197,7 @@ namespace CentricDataPull
                     connection.Open();
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
-                        while (reader.Read());
+                        while (reader.Read()) ;
                     }
                     connection.Close();
                 }

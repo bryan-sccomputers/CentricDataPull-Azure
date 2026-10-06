@@ -29,7 +29,7 @@ namespace CentricDataPull
         }
         public static void CheckSecurityToken(HttpRequest req)
         {
-            if(isExpired() || !SecurityTokenExists())
+            if (isExpired() || !SecurityTokenExists())
             {
                 SetSecurityToken(req);
                 SetNextExpiration();
@@ -45,7 +45,7 @@ namespace CentricDataPull
         }
         public static bool isExpired()
         {
-            if(DateTime.Compare(DateTime.Now, GetNextExpiration()) > 0)
+            if (DateTime.Compare(DateTime.Now, GetNextExpiration()) > 0)
             {
                 return true;
             }
@@ -63,14 +63,14 @@ namespace CentricDataPull
             //********************************************************************************
             log.LogInformation("C# HTTP trigger function processed a request.");
             string endpointName = req.Query["name"];
-            string element      = req.Query["element"];
+            string element = req.Query["element"];
             string extTableName = req.Query["extname"];
-            string parameters   = req.Query["parameters"];
-            string requestBody  = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data        = JsonConvert.DeserializeObject(requestBody);
-            endpointName        = endpointName ?? data?.name;
-            element             = element  != null ? CentricHelper.HTMLFormatElement(element) : data?.element;
-            extTableName        = extTableName ?? data?.extname;
+            string parameters = req.Query["parameters"];
+            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            dynamic data = JsonConvert.DeserializeObject(requestBody);
+            endpointName = endpointName ?? data?.name;
+            element = element != null ? CentricHelper.HTMLFormatElement(element) : data?.element;
+            extTableName = extTableName ?? data?.extname;
 
             if (parameters != null)
             {
