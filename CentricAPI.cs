@@ -25,6 +25,34 @@ namespace CentricDataPull
         {
             AllowAutoRedirect = false,
             UseCookies = false,
+            ServerCertificateCustomValidationCallback =
+    (request, certificate, chain, errors) =>
+    {
+        Info("TLS certificate validation Errors={Errors}", errors);
+
+        if (chain != null)
+        {
+            foreach (var item in chain.ChainElements)
+            {
+                Info(
+                    "TLS certificate Subject={Subject} Issuer={Issuer} Thumbprint={Thumbprint}",
+                    item.Certificate.Subject,
+                    item.Certificate.Issuer,
+                    item.Certificate.Thumbprint);
+
+                foreach (var status in item.ChainElementStatus)
+                {
+                    Info(
+                        "TLS chain Status={Status} Detail={Detail}",
+                        status.Status,
+                        status.StatusInformation.Trim());
+                }
+            }
+        }
+
+        // Preserve certificate validation.
+        return errors == System.Net.Security.SslPolicyErrors.None;
+    },
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
         })
         { Timeout = Timeout.InfiniteTimeSpan, MaxResponseContentBufferSize = 32 * 1024 * 1024 };

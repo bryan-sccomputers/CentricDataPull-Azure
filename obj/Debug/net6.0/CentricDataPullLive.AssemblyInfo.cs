@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CentricDataPullLive")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+17265a11d802eb4a239aa382c20d7c6bb3d90ceb")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cc7919a8283a68ad126ae6b3e3d223922e73b062")]
 [assembly: System.Reflection.AssemblyProductAttribute("CentricDataPullLive")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CentricDataPullLive")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
