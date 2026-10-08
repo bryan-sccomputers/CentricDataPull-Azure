@@ -178,7 +178,31 @@ namespace CentricDataPull
                         Failure(operation, error);
                         throw error;
                     }
-                    catch (Exception error) { Info("HTTP failed Url={Url} Attempt={Attempt} ElapsedMs={ElapsedMs}", SafeUrl(request.RequestUri), attempt, watch.ElapsedMilliseconds); Failure(operation, error); throw; }
+                    catch (Exception error)
+                    {
+                        Info(
+                            "HTTP failed Url={Url} Attempt={Attempt} ElapsedMs={ElapsedMs}",
+                            SafeUrl(request.RequestUri),
+                            attempt,
+                            watch.ElapsedMilliseconds);
+
+                        if (error.InnerException is
+                            System.Security.Authentication.AuthenticationException tlsError)
+                        {
+                            Info("TLS diagnostic Message={Message}", tlsError.Message);
+
+                            if (tlsError.InnerException != null)
+                            {
+                                Info(
+                                    "TLS underlying Type={Type} Message={Message}",
+                                    tlsError.InnerException.GetType().Name,
+                                    tlsError.InnerException.Message);
+                            }
+                        }
+
+                        Failure(operation, error);
+                        throw;
+                    }
                     finally { Detail(operation, "end", watch.ElapsedMilliseconds, attempt); }
                 }
             }
