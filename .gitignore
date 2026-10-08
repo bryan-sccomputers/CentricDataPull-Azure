@@ -1,0 +1,8 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/CentricDataPullLive/DesignTimeBuild/.dtbcache.v2
+/.vs/CentricDataPullLive/FileContentIndex/00a7ca3f-1f44-407d-99d0-112eac76005e.vsidx
+/.vs/CentricDataPullLive/FileContentIndex
+/.vs/CentricDataPullLive/v17/.suo
