@@ -68,18 +68,6 @@ namespace CentricDataPull
                 error is ApiException || (error is InvalidOperationException && error.Message.StartsWith("Missing configuration:"))
                     ? error.Message : "See error type, stack and provider codes",
                 error.StackTrace, error.InnerException?.GetType().Name);
-            for (Exception inner = error;
-                inner != null;
-                inner = inner.InnerException)
-                {
-                    if (inner is System.Security.Authentication.AuthenticationException)
-                    {
-                    Logger.Value?.LogError(
-                        "TLS failure Operation={Operation} Message={Message}",
-                        operation,
-                        inner.Message);
-                    }
-                }
 
             var sql = error as SqlException;
             if (sql != null)
