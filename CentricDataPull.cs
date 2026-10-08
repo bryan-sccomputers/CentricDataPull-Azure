@@ -41,10 +41,11 @@ namespace CentricDataPull
         {
             // A caller-supplied token is never shared with other invocations.
             string supplied = req.Query["token"];
-            if (!string.IsNullOrWhiteSpace(supplied)) return supplied;
+            if (!string.IsNullOrWhiteSpace(supplied)) { CentricAPI.Info("Auth source=caller_token"); return supplied; }
             using (CentricAPI.Measure("auth.lock.wait")) await TokenGate.WaitAsync(cancellation).ConfigureAwait(false);
             try
             {
+                CentricAPI.Info("Auth cache Exists={Exists} Expired={Expired} ExpiresUtc={ExpiresUtc}", SecurityTokenExists(), isExpired(), expiresAt);
                 if (!SecurityTokenExists() || isExpired())
                 {
                     using (CentricAPI.Measure("auth.session"))
@@ -92,6 +93,8 @@ namespace CentricDataPull
         {
             var id = Guid.NewGuid().ToString("N");
             var watch = Stopwatch.StartNew();
+            req.HttpContext.Response.Headers["X-Correlation-ID"] = id;
+            string stage = "request.body";
             using (log.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = id }))
             using (CentricAPI.UseLogger(log))
             using (var budget = CancellationTokenSource.CreateLinkedTokenSource(req.HttpContext.RequestAborted))
@@ -121,7 +124,11 @@ namespace CentricDataPull
                     var parameters = Value(req, body, "parameters");
                     parameters = string.IsNullOrWhiteSpace(parameters) ? "" : "?" +
                         string.Join("&", parameters.Trim('"').TrimStart('?').Split(',').Where(p => !string.IsNullOrWhiteSpace(p)));
+                    CentricAPI.Info("Request parsed Endpoint={Endpoint} Table={Table} Mode={Mode} HasFilters={HasFilters}",
+                        endpoint, tableName, string.IsNullOrEmpty(element) ? "collection" : "single", parameters.Length > 0);
+                    stage = "authentication";
                     var token = await TokenAsync(req, cancellation).ConfigureAwait(false);
+                    stage = "api.fetch";
                     var records = new JArray();
                     string singleResponse = null;
                     if (string.IsNullOrEmpty(element))
@@ -138,7 +145,10 @@ namespace CentricDataPull
                             CentricAPI.Detail("pagination", "page.start", watch.ElapsedMilliseconds, page);
                             var text = await CentricAPI.RequestAsync(endpoint + parameters +
                                 (parameters.Length == 0 ? "?" : "&") + "skip=" + checked(page * pageSize), token, null, cancellation).ConfigureAwait(false);
+                            stage = "api.parse.page";
                             var batch = Records(text, true);
+                            CentricAPI.Info("Page parsed Endpoint={Endpoint} Page={Page} Skip={Skip} Rows={Rows} TotalBeforePage={TotalBeforePage}", endpoint, page, checked(page * pageSize), batch.Count, records.Count);
+                            stage = "api.fetch";
                             CentricAPI.Detail("pagination", "page.rows", watch.ElapsedMilliseconds, batch.Count);
                             if (batch.Count == 0) { complete = true; break; }
                             string fingerprint;
@@ -154,12 +164,14 @@ namespace CentricDataPull
                     else
                     {
                         var text = await CentricAPI.RequestAsync(endpoint + "/" + Uri.EscapeDataString(element), token, null, cancellation).ConfigureAwait(false);
+                        stage = "api.parse.single";
                         records = Records(text, false);
                         singleResponse = string.IsNullOrWhiteSpace(text) ? "[]" : JToken.Parse(text).ToString(Formatting.None);
                     }
                     // Preserve single-record response shape and the original string-valued HTTP response.
                     string tableData = singleResponse ?? records.ToString(Formatting.None);
                     string insertData = records.ToString(Formatting.None);
+                    stage = "sql.convert_and_insert";
                     await CentricAPI.ConvertAndInsertAsync(tableName, insertData, cancellation).ConfigureAwait(false);
                     log.LogInformation("Centric invocation succeeded CorrelationId={CorrelationId} Rows={Rows} ElapsedMs={ElapsedMs}",
                         id, records.Count, watch.ElapsedMilliseconds);
@@ -194,7 +206,7 @@ namespace CentricDataPull
                 catch (ArgumentException error) { CentricAPI.Failure("request.validation", error); return Error(400, "invalid_request", id); }
                 catch (SqlException error) { CentricAPI.Failure("sql", error); return Error(error.Number == -2 ? 504 : 500, "database_failure", id); }
                 catch (Exception error) { CentricAPI.Failure("invocation", error); return Error(500, "internal_failure", id); }
-                finally { CentricAPI.Detail("invocation", "end", watch.ElapsedMilliseconds); }
+                finally { log.LogInformation("Centric invocation ended CorrelationId={CorrelationId} LastStage={LastStage} ElapsedMs={ElapsedMs}", id, stage, watch.ElapsedMilliseconds); CentricAPI.Detail("invocation", "end", watch.ElapsedMilliseconds); }
             }
         }
     }

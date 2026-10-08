@@ -63,10 +63,38 @@ namespace CentricDataPull
         }
         public static void Failure(string operation, Exception error)
         {
-            // Deliberately exclude exception messages/stack traces: providers can embed URLs, SQL or credentials.
-            Logger.Value?.LogError("Centric Operation={Operation} ErrorType={ErrorType} SqlNumber={SqlNumber}",
-                operation, error.GetType().Name, (error as SqlException)?.Number);
+            Logger.Value?.LogError("Centric Operation={Operation} ErrorType={ErrorType} Category={Category} Stack={Stack} InnerType={InnerType}",
+                operation, error.GetType().Name,
+                error is ApiException || (error is InvalidOperationException && error.Message.StartsWith("Missing configuration:"))
+                    ? error.Message : "See error type, stack and provider codes",
+                error.StackTrace, error.InnerException?.GetType().Name);
+            var sql = error as SqlException;
+            if (sql != null)
+                foreach (SqlError item in sql.Errors)
+                    Logger.Value?.LogError("SQL failure Number={Number} State={State} Class={Class} Procedure={Procedure} Line={Line} ConnectionId={ConnectionId}",
+                        item.Number, item.State, item.Class, item.Procedure, item.LineNumber, sql.ClientConnectionId);
         }
+        public static void Info(string message, params object[] values) => Logger.Value?.LogInformation(message, values);
+        private static string SafeUrl(Uri uri)
+        {
+            // Preserve pagination and integration flags; redact all other query values and element IDs.
+            var segments = uri.AbsolutePath.Split('/');
+            var rootSegments = ApiUri("").AbsolutePath.Split('/').Length;
+            for (int i = rootSegments; i < segments.Length; i++) segments[i] = "[redacted]";
+            var query = uri.Query.TrimStart('?').Split('&').Where(x => x.Length > 0).Select(x =>
+            {
+                var pair = x.Split(new[] { '=' }, 2);
+                var key = Uri.UnescapeDataString(pair[0]);
+                var value = pair.Length > 1 ? Uri.UnescapeDataString(pair[1]) : "";
+                bool safe = key.Equals("skip", StringComparison.OrdinalIgnoreCase) && value.All(char.IsDigit)
+                    || (key == "spi_ready_for_integration" || key == "spi_erp_processed")
+                        && (value == "true" || value == "false");
+                return Uri.EscapeDataString(key) + "=" + (safe ? value : "[redacted]");
+            });
+            return uri.GetLeftPart(UriPartial.Authority) + "/" + string.Join("/", segments.Skip(1))
+                + (uri.Query.Length == 0 ? "" : "?" + string.Join("&", query));
+        }
+
         public static IDisposable Measure(string operation)
         {
             var watch = Stopwatch.StartNew();
@@ -104,12 +132,17 @@ namespace CentricDataPull
                     if (loginBody != null) request.Content = new StringContent(loginBody, Encoding.UTF8, "application/json");
                     var watch = Stopwatch.StartNew();
                     Detail(operation, "start", 0, attempt);
+                    Info("HTTP start Method={Method} Url={Url} Attempt={Attempt} MaxAttempts={MaxAttempts} TimeoutSeconds={TimeoutSeconds}",
+                        request.Method.Method, SafeUrl(request.RequestUri), attempt, attempts, Setting("CENTRIC_HTTP_TIMEOUT_SECONDS", 30));
                     try
                     {
                         using (var response = await Client.SendAsync(request, HttpCompletionOption.ResponseContentRead, timeout.Token).ConfigureAwait(false))
                         {
                             int status = (int)response.StatusCode;
                             Detail(operation, "response.status", watch.ElapsedMilliseconds, status);
+                            Info("HTTP response Url={Url} Attempt={Attempt} Status={Status} ElapsedMs={ElapsedMs} ContentType={ContentType} ContentLength={ContentLength}",
+                                SafeUrl(request.RequestUri), attempt, status, watch.ElapsedMilliseconds,
+                                response.Content.Headers.ContentType?.MediaType, response.Content.Headers.ContentLength);
                             bool transient = status == 408 || status == 429 || status == 500 || status == 502 || status == 503 || status == 504;
                             if (transient && attempt < attempts)
                             {
@@ -118,7 +151,8 @@ namespace CentricDataPull
                                     (retry?.Date.HasValue == true ? (retry.Date.Value - DateTimeOffset.UtcNow).TotalSeconds : attempt * 2);
                                 // Never retry sooner than Retry-After; excessive delays are surfaced to the caller.
                                 if (seconds > 30) throw new ApiException(status, "Upstream retry delay exceeds request budget.");
-                                Detail(operation, "retry.delay", 0, (int)Math.Max(1, seconds));
+                                Info("HTTP retry Url={Url} Status={Status} NextAttempt={NextAttempt} DelaySeconds={DelaySeconds}",
+                                    SafeUrl(request.RequestUri), status, attempt + 1, Math.Max(1, seconds));
                                 await Task.Delay(TimeSpan.FromSeconds(Math.Max(1, seconds)), cancellation).ConfigureAwait(false);
                                 continue;
                             }
@@ -143,7 +177,7 @@ namespace CentricDataPull
                         Failure(operation, error);
                         throw error;
                     }
-                    catch (Exception error) { Failure(operation, error); throw; }
+                    catch (Exception error) { Info("HTTP failed Url={Url} Attempt={Attempt} ElapsedMs={ElapsedMs}", SafeUrl(request.RequestUri), attempt, watch.ElapsedMilliseconds); Failure(operation, error); throw; }
                     finally { Detail(operation, "end", watch.ElapsedMilliseconds, attempt); }
                 }
             }
@@ -198,7 +232,7 @@ namespace CentricDataPull
                 var parsed = JToken.Parse(tableData);
                 var rows = parsed as JArray ?? (parsed is JObject ? new JArray(parsed) : null);
                 if (rows == null) throw new ApiException(200, "Expected an object or array of objects.");
-                if (rows.Count == 0) return;
+                if (rows.Count == 0) { Info("SQL skipped Table={Table} Reason=empty_result", tableName); return; }
                 var table = new DataTable();
                 foreach (var row in rows)
                 {
@@ -220,6 +254,14 @@ namespace CentricDataPull
                     table.Rows.Add(record);
                 }
                 if (table.Columns.Count == 0) throw new ApiException(200, "Records contain no columns.");
+                foreach (DataColumn column in table.Columns)
+                {
+                    int maxLength = table.Rows.Cast<DataRow>().Where(r => !r.IsNull(column))
+                        .Select(r => ((string)r[column]).Length).DefaultIfEmpty(0).Max();
+                    if (maxLength > 2000)
+                        Logger.Value?.LogWarning("SQL value may exceed generated VARCHAR(2000) Table={Table} Column={Column} MaxCharacters={MaxCharacters}", tableName, column.ColumnName, maxLength);
+                }
+                Info("SQL conversion complete Table={Table} Rows={Rows} Columns={Columns}", tableName, table.Rows.Count, table.Columns.Count);
                 await EnsureTableAsync(tableName, table.Columns.Cast<DataColumn>().Select(c => c.ColumnName), cancellation).ConfigureAwait(false);
                 await InsertAsync(tableName, table, cancellation).ConfigureAwait(false);
             }
@@ -227,11 +269,16 @@ namespace CentricDataPull
         private static async Task EnsureTableAsync(string name, IEnumerable<string> keys, CancellationToken cancellation)
         {
             var columns = keys.ToArray();
+            Info("SQL schema start Table={Table} Columns={Columns}", name, columns.Length);
             var sql = "IF OBJECT_ID(N'dbo." + Literal(Identifier(name)) + "', N'U') IS NULL CREATE TABLE dbo." + Identifier(name) +
                 " (" + string.Join(", ", columns.Select(k => Identifier(k) + " VARCHAR(2000)")) + ");";
             await ExecuteQueryAsync(sql, cancellation).ConfigureAwait(false);
             foreach (var column in columns)
+            {
+                Detail("sql.schema", "column.check");
+                Info("SQL column check Table={Table} Column={Column}", name, column);
                 await ExecuteQueryAsync(ColumnSql(name, column), cancellation).ConfigureAwait(false);
+            }
         }
         private static string ColumnSql(string name, string column)
             => "IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='dbo' AND TABLE_NAME='" +
@@ -272,14 +319,15 @@ namespace CentricDataPull
                 using (var bulk = new SqlBulkCopy(connection))
                 {
                     bulk.BulkCopyTimeout = Setting("CENTRIC_SQL_BULK_TIMEOUT_SECONDS", 30);
+                    Info("SQL bulk start Table={Table} Rows={Rows} Columns={Columns} TimeoutSeconds={TimeoutSeconds}", tableName, table.Rows.Count, table.Columns.Count, bulk.BulkCopyTimeout);
                     bulk.DestinationTableName = "dbo." + Identifier(tableName);
                     foreach (DataColumn column in table.Columns) bulk.ColumnMappings.Add(column.ColumnName, column.ColumnName);
                     Detail("sql.bulk", "rows", 0, table.Rows.Count);
                     using (Measure("sql.bulk")) await bulk.WriteToServerAsync(table, cancellation).ConfigureAwait(false);
+                    Info("SQL bulk completed Table={Table} Rows={Rows}", tableName, table.Rows.Count);
                 }
             }
         }
-        //Function to send out an email to the people in charge of errors to notify them of any.
         public static void SendErrorEmail(string message)
         {
             var mailMessage = new MimeMessage();
