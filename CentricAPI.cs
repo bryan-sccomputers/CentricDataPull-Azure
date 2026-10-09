@@ -327,6 +327,7 @@ namespace CentricDataPull
                     if (maxLength > 2000)
                         Logger.Value?.LogWarning("SQL value may exceed generated VARCHAR(2000) Table={Table} Column={Column} MaxCharacters={MaxCharacters}", tableName, column.ColumnName, maxLength);
                 }
+                /*
                 Info("SQL conversion complete Table={Table} Rows={Rows} Columns={Columns}", tableName, table.Rows.Count, table.Columns.Count);
                 if (string.Equals(
     tableName,
@@ -392,6 +393,7 @@ namespace CentricDataPull
                         }
                     }
                 }
+                */
                 await EnsureTableAsync(tableName, table.Columns.Cast<DataColumn>().Select(c => c.ColumnName), cancellation).ConfigureAwait(false);
                 await InsertAsync(tableName, table, cancellation).ConfigureAwait(false);
             }
