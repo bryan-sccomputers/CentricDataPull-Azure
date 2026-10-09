@@ -328,26 +328,68 @@ namespace CentricDataPull
                         Logger.Value?.LogWarning("SQL value may exceed generated VARCHAR(2000) Table={Table} Column={Column} MaxCharacters={MaxCharacters}", tableName, column.ColumnName, maxLength);
                 }
                 Info("SQL conversion complete Table={Table} Rows={Rows} Columns={Columns}", tableName, table.Rows.Count, table.Columns.Count);
-                if (table.Columns.Contains("hierarchy"))
+                if (string.Equals(
+    tableName,
+    "collections_styles",
+    StringComparison.OrdinalIgnoreCase))
                 {
-                    foreach (DataRow row in table.Rows)
+                    Info(
+    "SQL insert preview Table={Table} Rows={Rows} Columns={Columns}",
+    tableName,
+    table.Rows.Count,
+    table.Columns.Count);
+
+                    const int chunkSize = 2000;
+
+                    for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
                     {
+                        DataRow row = table.Rows[rowIndex];
+
                         string recordId = table.Columns.Contains("id")
                             && !row.IsNull("id")
                                 ? Convert.ToString(row["id"])
                                 : "(unknown)";
 
-                        string hierarchy = row.IsNull("hierarchy")
-                            ? null
-                            : Convert.ToString(row["hierarchy"]);
+                        foreach (DataColumn column in table.Columns)
+                        {
+                            bool isNull = row.IsNull(column);
+                            string value = isNull ? null : Convert.ToString(row[column]);
 
-                        Info(
-                            "SQL hierarchy Table={Table} RecordId={RecordId} " +
-                            "Characters={Characters} Value={Value}",
-                            tableName,
-                            recordId,
-                            hierarchy?.Length ?? 0,
-                            hierarchy);
+                            Info(
+                                "SQL insert column Table={Table} Row={Row} RecordId={RecordId} " +
+                                "Column={Column} DataType={DataType} IsNull={IsNull} Characters={Characters}",
+                                tableName,
+                                rowIndex,
+                                recordId,
+                                column.ColumnName,
+                                column.DataType.Name,
+                                isNull,
+                                value?.Length ?? 0);
+
+                            if (isNull)
+                                continue;
+
+                            int chunks = Math.Max(
+                                1,
+                                (int)Math.Ceiling(value.Length / (double)chunkSize));
+
+                            for (int chunk = 0; chunk < chunks; chunk++)
+                            {
+                                int start = chunk * chunkSize;
+                                int length = Math.Min(chunkSize, value.Length - start);
+
+                                Info(
+                                    "SQL insert value Table={Table} Row={Row} RecordId={RecordId} " +
+                                    "Column={Column} Chunk={Chunk} TotalChunks={TotalChunks} Value={Value}",
+                                    tableName,
+                                    rowIndex,
+                                    recordId,
+                                    column.ColumnName,
+                                    chunk + 1,
+                                    chunks,
+                                    value.Substring(start, length));
+                            }
+                        }
                     }
                 }
                 await EnsureTableAsync(tableName, table.Columns.Cast<DataColumn>().Select(c => c.ColumnName), cancellation).ConfigureAwait(false);
