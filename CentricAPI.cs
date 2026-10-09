@@ -99,9 +99,22 @@ namespace CentricDataPull
 
             var sql = error as SqlException;
             if (sql != null)
+            {
                 foreach (SqlError item in sql.Errors)
-                    Logger.Value?.LogError("SQL failure Number={Number} State={State} Class={Class} Procedure={Procedure} Line={Line} ConnectionId={ConnectionId}",
-                        item.Number, item.State, item.Class, item.Procedure, item.LineNumber, sql.ClientConnectionId);
+                {
+                    Logger.Value?.LogError(
+                        "SQL failure Number={Number} State={State} Class={Class} " +
+                        "Procedure={Procedure} Line={Line} ConnectionId={ConnectionId} " +
+                        "Message={Message}",
+                        item.Number,
+                        item.State,
+                        item.Class,
+                        item.Procedure,
+                        item.LineNumber,
+                        sql.ClientConnectionId,
+                        item.Message);
+                }
+            }
         }
         public static void Info(string message, params object[] values) => Logger.Value?.LogInformation(message, values);
         private static string SafeUrl(Uri uri)
@@ -315,6 +328,28 @@ namespace CentricDataPull
                         Logger.Value?.LogWarning("SQL value may exceed generated VARCHAR(2000) Table={Table} Column={Column} MaxCharacters={MaxCharacters}", tableName, column.ColumnName, maxLength);
                 }
                 Info("SQL conversion complete Table={Table} Rows={Rows} Columns={Columns}", tableName, table.Rows.Count, table.Columns.Count);
+                if (table.Columns.Contains("hierarchy"))
+                {
+                    foreach (DataRow row in table.Rows)
+                    {
+                        string recordId = table.Columns.Contains("id")
+                            && !row.IsNull("id")
+                                ? Convert.ToString(row["id"])
+                                : "(unknown)";
+
+                        string hierarchy = row.IsNull("hierarchy")
+                            ? null
+                            : Convert.ToString(row["hierarchy"]);
+
+                        Info(
+                            "SQL hierarchy Table={Table} RecordId={RecordId} " +
+                            "Characters={Characters} Value={Value}",
+                            tableName,
+                            recordId,
+                            hierarchy?.Length ?? 0,
+                            hierarchy);
+                    }
+                }
                 await EnsureTableAsync(tableName, table.Columns.Cast<DataColumn>().Select(c => c.ColumnName), cancellation).ConfigureAwait(false);
                 await InsertAsync(tableName, table, cancellation).ConfigureAwait(false);
             }

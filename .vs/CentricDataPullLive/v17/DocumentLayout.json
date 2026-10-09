@@ -40,9 +40,10 @@
               "RelativeDocumentMoniker": "CentricHelper.cs",
               "ToolTip": "E:\\Work Clients\\Spirit\\CentricDataPullLive\\CentricHelper.cs",
               "RelativeToolTip": "CentricHelper.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAUAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-06T17:58:47.536Z"
+              "WhenOpened": "2026-10-06T17:58:47.536Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -52,9 +53,10 @@
               "RelativeDocumentMoniker": "CentricAPI.cs",
               "ToolTip": "E:\\Work Clients\\Spirit\\CentricDataPullLive\\CentricAPI.cs",
               "RelativeToolTip": "CentricAPI.cs",
-              "ViewState": "AgIAAAcBAAAAAAAAAAAAAB0BAABDAAAAAAAAAA==",
+              "ViewState": "AgIAACoAAAAAAAAAAAAAADYAAAAGAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-06T03:08:01.034Z"
+              "WhenOpened": "2026-10-06T03:08:01.034Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -64,7 +66,7 @@
               "RelativeDocumentMoniker": "CentricDataPull.cs",
               "ToolTip": "E:\\Work Clients\\Spirit\\CentricDataPullLive\\CentricDataPull.cs",
               "RelativeToolTip": "CentricDataPull.cs",
-              "ViewState": "AgIAAE8AAAAAAAAAAAAqwF8AAAAtAAAAAAAAAA==",
+              "ViewState": "AgIAAKMAAAAAAAAAAAAMwLkAAABDAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-10-06T03:08:01.105Z",
               "EditorCaption": ""

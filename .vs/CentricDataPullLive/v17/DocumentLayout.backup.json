@@ -22,12 +22,8 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 5,
+          "SelectedChildIndex": 4,
           "Children": [
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
-            },
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{eefa5220-e298-11d0-8f78-00a0c9110057}"
@@ -46,8 +42,7 @@
               "RelativeToolTip": "CentricHelper.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-06T17:58:47.536Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-06T17:58:47.536Z"
             },
             {
               "$type": "Document",
@@ -59,8 +54,7 @@
               "RelativeToolTip": "CentricAPI.cs",
               "ViewState": "AgIAAAcBAAAAAAAAAAAAAB0BAABDAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-06T03:08:01.034Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-06T03:08:01.034Z"
             },
             {
               "$type": "Document",
@@ -70,7 +64,7 @@
               "RelativeDocumentMoniker": "CentricDataPull.cs",
               "ToolTip": "E:\\Work Clients\\Spirit\\CentricDataPullLive\\CentricDataPull.cs",
               "RelativeToolTip": "CentricDataPull.cs",
-              "ViewState": "AgIAAJwAAAAAAAAAAAAAALgAAABAAAAAAAAAAA==",
+              "ViewState": "AgIAAE8AAAAAAAAAAAAqwF8AAAAtAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-10-06T03:08:01.105Z",
               "EditorCaption": ""
